@@ -32,6 +32,7 @@ def create_app():
     industry_model = joblib.load('apps/models/industry/industry_model.joblib')
     culture_scaler = joblib.load('apps/models/culture/culture_scaler.joblib')
     culture_model = joblib.load('apps/models/culture/culture_model.joblib')
+    reverse_model = joblib.load('apps/models/RUFmodel1.pkl')
 
     CORS(app)
 
@@ -140,5 +141,86 @@ def create_app():
         except:
             res_dict = {'error': 'invalid ID'}
         return(jsonify(res_dict))
+
+
+# #reverse user flow -- in progress
+#     @app.route(f'/{ACCESS_KEY}/reverse/<city_size>/<mean_income>/<housing>/<temp>')
+#     def reverse_user_flow(city_size, mean_income, housing, temp):
+#         city_size = str(city_size)
+#         mean_income = int(mean_income)
+#         housing = int(housing)
+#         temp = str(temp)
+#         data = {
+#             "City Population Size": city_size,
+#             "Average Monthly Household Income": mean_income,
+#             "The Cost of Housing": housing,
+#             "City Temperature": temp}
+#         x = pd.DataFrame(data, index=[0])
+#         pred = reverse_model.predict(x)[0]
+#         res = mongo.db.alldata.find_one(int(pred))
+
+#         return jsonify(res)
+
+
+
+
+#strongly recommend following the 'get' method for requests
+#if/else statements for categorical
+#data should have features and how they will look in url
+#keep them lower case for uniform appearance with all features
+    @app.route(f'/{ACCESS_KEY}/reverse', methods=['GET'])
+    def reverse_user_flow():
+        temp= request.args.get('temp')
+        mean_income= int(request.args.get('mean_income'))
+        housing= int(request.args.get('housing'))
+        city_size= request.args.get('city_size')
+        industry= request.args.get('industry')
+        industry_list= ['Agriculture, Forestry, Fishing, Hunting, or Mining', 'Construction',
+        'Manufacturing', 'Wholesale Trade', 'Retail Trade',
+        'Transportation, Warehousing or Utilities', 'Information',
+        'Finance, Insurance, Real Estate, Rental, or Leasing',
+        'Professional Scientific, Management, Administrative, or Waste Management Services',
+        'Educational Services, Health Care, or Social Assistance',
+        'Arts, Entertainment, Recreation, Accommodation, or Food Services',
+        'Other', 'Public Administration']
+        if temp == 'cold':
+            temp = 0
+        elif temp == 'temperate':
+            temp = 1
+        else:
+            temp = 2
+
+        if city_size == 'town':
+            city_size = 0
+        elif city_size == 'small_city':
+            city_size = 1
+        elif city_size == 'medium_city':
+            city_size = 2
+        else:
+            city_size = 3
+        data = {
+            "City Population Size": city_size,
+            "Average Monthly Household Income": mean_income,
+            "The Cost of Housing": housing,
+            "City Temperature": temp}
+        for ind in industry_list:
+            if industry == ind:
+                data[ind] = 1
+            else:
+                data[ind] = .5
+        x = pd.DataFrame(data, index=[0])
+        pred = reverse_model.predict(x)[0]
+        res = mongo.db.alldata.find_one(int(pred))
+
+        return jsonify(res)
+
+#To test connections locally for flask apps added:
+#http://localhost:5000/access key(in the .env)/model_name? and an input for each variable for the model
+#Example broken up URL:
+    #localhost/ACCESS_KEY/reverse?
+    # temp=(temperate, cool, cold)
+    # &income=(numeric)
+    # &housing=(numeric)
+    # &city_size=(town, small_city, medium_city, large_city)
 
     return app

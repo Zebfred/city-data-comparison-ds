@@ -101,3 +101,6 @@ def model_render(li, scale, nn, num):
     else:
         pass
     return(res_arry)
+
+
+    return(res)
